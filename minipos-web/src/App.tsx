@@ -19,7 +19,7 @@ export default function App() {
               </PrivateRoute>
             }
           >
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<PrivateRoute allowedRoles={['ADMIN']}><DashboardPage /></PrivateRoute>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

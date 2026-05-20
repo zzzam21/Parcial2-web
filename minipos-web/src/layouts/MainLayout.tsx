@@ -7,7 +7,7 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow px-6 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Tickets</h1>
+        <h1 className="text-xl font-bold">TicketsAPP</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">
             {user?.nombre} {user?.apellido}
