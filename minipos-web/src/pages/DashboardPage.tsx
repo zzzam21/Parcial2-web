@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getTickets, type TicketResponse } from '../api/tickets'
+import { getTickets, createTicket, type TicketResponse, type Priority, type CreateTicketRequest } from '../api/tickets'
 import { getCategories, type CategoryResponse } from '../api/categories'
 
 const statusColors: Record<string, string> = {
@@ -40,6 +40,10 @@ function TicketCard({ ticket }: { ticket: TicketResponse }) {
         </span>
       </div>
 
+      {ticket.descripcion && (
+        <p className="text-sm text-gray-600">{ticket.descripcion}</p>
+      )}
+
       {ticket.categoriaNombre && (
         <p className="text-sm text-gray-500">
           <span className="font-medium">Categoría:</span> {ticket.categoriaNombre}
@@ -66,6 +70,12 @@ export default function DashboardPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | ''>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [titulo, setTitulo] = useState('')
+  const [descripcion, setDescripcion] = useState('')
+  const [prioridad, setPrioridad] = useState<Priority>('MEDIA')
+  const [categoriaId, setCategoriaId] = useState<number | ''>('')
+  const [submitting, setSubmitting] = useState(false)
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     getTickets()
@@ -79,6 +89,41 @@ export default function DashboardPage() {
       .then(setCategories)
       .catch(() => {})
   }, [])
+
+  function handleCreateTicket(e: React.FormEvent) {
+    e.preventDefault()
+    setFormError('')
+
+    if (!titulo.trim()) {
+      setFormError('El título es obligatorio')
+      return
+    }
+    if (categoriaId === '') {
+      setFormError('Selecciona una categoría')
+      return
+    }
+
+    setSubmitting(true)
+
+    const data: CreateTicketRequest = {
+      titulo: titulo.trim(),
+      descripcion: descripcion.trim(),
+      prioridad,
+      categoriaId: Number(categoriaId),
+    }
+
+    createTicket(data)
+      .then(() => {
+        setTitulo('')
+        setDescripcion('')
+        setPrioridad('MEDIA')
+        setCategoriaId('')
+        return getTickets()
+      })
+      .then(setTickets)
+      .catch((err: Error) => setFormError(err.message))
+      .finally(() => setSubmitting(false))
+  }
 
   if (loading) {
     return (
@@ -111,6 +156,83 @@ export default function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+
+      <form onSubmit={handleCreateTicket}>
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Registrar nuevo ticket</h2>
+
+          {formError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-sm">
+              {formError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+              <input
+                type="text"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Título del ticket"
+                required
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+              <select
+                value={prioridad}
+                onChange={(e) => setPrioridad(e.target.value as Priority)}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="BAJA">BAJA</option>
+                <option value="MEDIA">MEDIA</option>
+                <option value="ALTA">ALTA</option>
+                <option value="CRITICA">CRÍTICA</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+              <textarea
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Descripción del ticket (opcional)"
+                rows={3}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+              <select
+                value={categoriaId}
+                onChange={(e) => setCategoriaId(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">-- Seleccionar --</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-2 px-6 rounded transition-colors"
+            >
+              {submitting ? 'Guardando...' : 'Agregar'}
+            </button>
+          </div>
+        </div>
+      </form>
 
       <div className="mb-4">
         <select
